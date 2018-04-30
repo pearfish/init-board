@@ -15,18 +15,18 @@ let saveLocally = xs =>
 
 module Top = {
   type action =
-    | NewTodoEnterKeyDown
-    | NewTodoOtherKeyDown
+    | NewCharacterEnterKeyDown
+    | NewCharacterOtherKeyDown
     | Next
     | Cancel
-    | ChangeTodo(string)
+    | ChangeCharacter(string)
     | Save(CharLine.character, string, int)
     | Edit(CharLine.character)
     | Destroy(CharLine.character)
     | RerollAll;
   type state = {
     editing: option(string),
-    newTodo: string,
+    newCharacter: string,
     current: int,
     characters: list(CharLine.character),
   };
@@ -36,10 +36,10 @@ module Top = {
     reducer: (action, state) =>
       switch (action) {
       | Cancel => ReasonReact.Update({...state, editing: None})
-      | ChangeTodo(text) => ReasonReact.Update({...state, newTodo: text})
-      | NewTodoOtherKeyDown => ReasonReact.NoUpdate
-      | NewTodoEnterKeyDown =>
-        switch (String.trim(state.newTodo)) {
+      | ChangeCharacter(text) => ReasonReact.Update({...state, newCharacter: text})
+      | NewCharacterOtherKeyDown => ReasonReact.NoUpdate
+      | NewCharacterEnterKeyDown =>
+        switch (String.trim(state.newCharacter)) {
         | "" => ReasonReact.NoUpdate
         | nonEmptyValue =>
           let characters =
@@ -53,7 +53,7 @@ module Top = {
               },
             ];
           saveLocally(characters);
-          ReasonReact.Update({...state, newTodo: "", characters});
+          ReasonReact.Update({...state, newCharacter: "", characters});
         }
       | Next => ReasonReact.Update({...state, current: (state.current + 1) mod List.length(state.characters)})
       | RerollAll =>
@@ -74,10 +74,10 @@ module Top = {
           {...state, editing: None, characters},
           (_self => saveLocally(characters)),
         );
-      | Edit(todo) =>
-        ReasonReact.Update({...state, editing: Some(CharLine.(todo.id))})
-      | Destroy(todo) =>
-        let characters = List.keep(state.characters, candidate => candidate !== todo);
+      | Edit(character) =>
+        ReasonReact.Update({...state, editing: Some(CharLine.(character.id))})
+      | Destroy(character) =>
+        let characters = List.keep(state.characters, candidate => candidate !== character);
         ReasonReact.UpdateWithSideEffects(
           {...state, characters},
           (_self => saveLocally(characters)),
@@ -91,7 +91,7 @@ module Top = {
         };
       {
         editing: None,
-        newTodo: "",
+        newCharacter: "",
         current: -1,
         characters,
       };
@@ -139,20 +139,20 @@ module Top = {
           <input
             className="new-char"
             placeholder="new character / monster name"
-            value=state.newTodo
+            value=state.newCharacter
             onKeyDown=(
               event =>
                 if (ReactEventRe.Keyboard.keyCode(event) === 13) {
                   ReactEventRe.Keyboard.preventDefault(event);
-                  send(NewTodoEnterKeyDown);
+                  send(NewCharacterEnterKeyDown);
                 } else {
-                  send(NewTodoOtherKeyDown);
+                  send(NewCharacterOtherKeyDown);
                 }
             )
             onChange=(
               event =>
                 send(
-                  ChangeTodo(
+                  ChangeCharacter(
                     ReactDOMRe.domElementToObj(
                       ReactEventRe.Form.target(event),
                     )##value,
@@ -161,18 +161,20 @@ module Top = {
             )
             autoFocus=true
           />
-          <button
-            className="button reroll"
-            onClick=(_event => send(RerollAll))
-          >
-            (ReasonReact.stringToElement("reroll all"))
-          </button>
-          <button
-            className="button reroll"
-            onClick=(_event => send(Next))
-          >
-            (ReasonReact.stringToElement("next"))
-          </button>
+          <div className="buttons">
+            <button
+              className="button reroll"
+              onClick=(_event => send(RerollAll))
+            >
+              (ReasonReact.stringToElement("reroll all"))
+            </button>
+            <button
+              className="button reroll"
+              onClick=(_event => send(Next))
+            >
+              (ReasonReact.stringToElement("next"))
+            </button>
+          </div>
         </header>
         main
       </div>;

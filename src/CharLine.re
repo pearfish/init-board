@@ -2,12 +2,12 @@ type character = {
   id: string,
   name: string,
   bonus: int,
-  init: float,
+  init: float
 };
 
 type state = {
   editText: string,
-  editBonus: int,
+  editBonus: string,
   editing: bool,
   editFieldRef: ref(option(Dom.element)),
   editBonusFieldRef: ref(option(Dom.element)),
@@ -29,16 +29,9 @@ let setEditBonusFieldRef = (r, {ReasonReact.state}) =>
   state.editBonusFieldRef := Js.Nullable.toOption(r);
 
 let parseBonus = bonus => {
-  /* if (bonus == "-") {
-    -0;
-  } */
-
-  let parsed =
-  /* todo: this gets pretty fookin confused by attempts to type - */
-    try (Some(int_of_string(String.trim(bonus)))) {
-      | Failure(_) => None
-    };
-
+  let parsed = try (Some(int_of_string(String.trim(bonus)))) {
+    | Failure(_) => None
+  };
   switch parsed {
     | Some(n) => n
     | _ => 0
@@ -62,14 +55,14 @@ let make =
     | nonEmptyValue =>
       ReasonReact.UpdateWithSideEffects(
         {...state, editText: nonEmptyValue},
-        (_self => onSave(nonEmptyValue, state.editBonus)),
+        (_self => onSave(nonEmptyValue, parseBonus(state.editBonus))),
       )
     };
   {
     ...component,
     initialState: () => {
       editText: character.name,
-      editBonus: character.bonus,
+      editBonus: string_of_int(character.bonus),
       editFieldRef: ref(None),
       editBonusFieldRef: ref(None),
       editing,
@@ -86,19 +79,19 @@ let make =
               ReasonReact.Update({...state, editText: text}) :
               ReasonReact.NoUpdate
         )
-      | ChangeBonus(bonus) => (
+      | ChangeBonus(editBonus) => (
           state =>
             editing ?
-              ReasonReact.Update({...state, editBonus: parseBonus(bonus)}) :
+              ReasonReact.Update({...state, editBonus}) :
               ReasonReact.NoUpdate
       )
       | KeyDown(27) =>
         onCancel();
-        (state => ReasonReact.Update({...state, editText: character.name, editBonus: character.bonus}));
+        (state => ReasonReact.Update({...state, editText: character.name, editBonus: string_of_int(character.bonus)}));
       | KeyDown(13) => submitHelper
       | KeyDown(_) => (_state => ReasonReact.NoUpdate)
       },
-    willReceiveProps: ({state}) => {...state, editing},
+    willReceiveProps: ({state}) => {...state, editing, editBonus: string_of_int(character.bonus)},
     didUpdate: ({oldSelf, newSelf}) =>
       switch (oldSelf.state.editing, editing, newSelf.state.editFieldRef^) {
       | (false, true, Some(field)) =>
@@ -109,25 +102,14 @@ let make =
         );
       | _ => ()
       },
-    /* escape key */
     render: ({state, handle, send}) => {
-      let className =
-        [editing ? "editing" : ""]
-        |> String.concat(" ");
-
-      let button = editing
-          ? <button
-            onClick=((_event) => send(Submit))
-          >
-            (ReasonReact.stringToElement("ok"))
-          </button>
-          : ReasonReact.nullElement;
+      let className = editing ? "editing" : "";
 
       let main = editing
         ? <div className="editing">
             <input
               ref=(handle(setEditFieldRef))
-              className="edit"
+              className="edit name"
               value=state.editText
               onChange=(
                 event =>
@@ -143,8 +125,8 @@ let make =
             />
             <input
               ref=(handle(setEditBonusFieldRef))
-              className="edit"
-              value=string_of_int(state.editBonus)
+              className="edit bonus"
+              value=state.editBonus
               onChange=(
                 event =>
                   send(
@@ -157,6 +139,11 @@ let make =
                 event => send(KeyDown(ReactEventRe.Keyboard.which(event)))
               )
             />
+            <button
+              onClick=((_event) => send(Submit))
+            >
+              (ReasonReact.stringToElement("ok"))
+            </button>
           </div>
           : <div className="view">
             <label
@@ -182,7 +169,6 @@ let make =
 
       <li className>
         (main)
-        (button)
         (currentIndicator)
       </li>;
     },
