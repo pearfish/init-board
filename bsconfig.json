@@ -1,0 +1,13 @@
+{
+  "name": "reason-react-example",
+  "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
+  "reason": { "react-jsx": 2 },
+  "bs-dependencies": ["reason-react", "bs-fetch", "@glennsl/bs-json"],
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "refmt": 3
+}
